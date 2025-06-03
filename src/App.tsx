@@ -3,17 +3,23 @@ import './App.css'
 
 function App() {
 
-  const [tasks, setTasks] = useState<string[]>([])
+  const defaultTasks = [
+    "moose",
+    "is",
+    "on the loose"
+  ]
 
-  let navItems = ["Importance", "Urgency", "Chart"]
+  const [tasks, setTasks] = useState<string[]>(defaultTasks)
+
+  const navItems = ["Importance", "Urgency", "Chart"]
 
 
-  let handleNewTask = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleNewTask = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const form = event.target as HTMLFormElement;
     const taskName = form.elements.namedItem("taskName") as HTMLInputElement;
-    let newTask = taskName.value
+    const newTask = taskName.value
 
     setTasks((currentTasks) => [...currentTasks, newTask])
     taskName.value = ''
