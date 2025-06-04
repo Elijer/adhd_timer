@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./App.css";
 import {
   DragDropContext,
@@ -26,6 +26,7 @@ function App() {
     userSelect: "none",
     padding: pad,
     margin: `0 0 ${pad}px 0`,
+    width: "500px",
 
     // change background colour if dragging
     background: isDragging ? "lightgreen" : "grey",
@@ -36,20 +37,21 @@ function App() {
 
   const initialTasks: Task[] = [
     {
-      id: "item-1",
+      id: "1",
       content: "thingy",
     },
     {
-      id: "item-2",
+      id: "2",
       content: "other thing",
     },
     {
-      id: "item-3",
+      id: "3",
       content: "yet other guy",
     },
   ];
 
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const taskCounter = useRef(77);
 
   // TODO bring this back when uncommenting things
   const handleNewTask = (event: React.FormEvent<HTMLFormElement>) => {
@@ -61,10 +63,12 @@ function App() {
     setTasks((currentTasks: Task[]) => [
       ...currentTasks,
       {
-        id: newTask,
+        id: newTask + taskCounter.current,
         content: newTask,
       },
     ]);
+    console.log(tasks[tasks.length - 1]);
+    taskCounter.current++;
   };
 
   // a little function to help us with reordering the result
@@ -99,26 +103,38 @@ function App() {
       <div className="header .pt-sans-regular">
         <span className="nav-item nav-title">Eisenhower</span>
         {navItems.map((navItem) => {
-          return <span className="nav-item">{navItem}</span>;
+          return (
+            <span className="nav-item" key={navItem}>
+              {navItem}
+            </span>
+          );
         })}
       </div>
       <div className="view">
-        <h1>Importance</h1>
-        <p className="add-task">
-          <form onSubmit={handleNewTask}>
-            <input type="text" name="taskName" placeholder="name" />
-            <input type="submit" placeholder="task name" />
+        <h1 className="font-bold underline mt-1 lg:justify-">Importance</h1>
+        <div className="add-task">
+          <form
+            onSubmit={handleNewTask}
+            className="flex gap-2 items-center mt-4 mb-6"
+          >
+            <input
+              type="text"
+              name="taskName"
+              placeholder="name"
+              className="px-2 py-1 border rounded border-gray-300 focus:outline-none focus:ring focus:border-blue-300"
+            />
+            <input
+              type="submit"
+              placeholder="task name"
+              className="px-4 py-1 bg-orange-600 text-white rounded hover:bg-yellow-700 transition"
+            />
           </form>
-        </p>
+        </div>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="droppable">
             {(droppableProvided, droppableSnapshot) => {
-              console.log(console.log(droppableSnapshot));
               return (
-                <div
-                  ref={droppableProvided.innerRef}
-                  style={{ padding: "100px" }}
-                >
+                <div ref={droppableProvided.innerRef}>
                   {tasks.map((task, index) => (
                     <Draggable
                       key={task.id}
@@ -130,6 +146,11 @@ function App() {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
+                          className={`rounded-lg px-4 py-2 mb-2 shadow-md border ${
+                            snapshot.isDragging
+                              ? "bg-green-200 scale-105 transition-all duration-150"
+                              : "bg-gray-100"
+                          }`}
                           style={getItemStyle(
                             snapshot.isDragging,
                             provided.draggableProps.style
