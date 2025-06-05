@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@theme {
+  --color-*: initial;
+
+  --color-sand-100: #FFF2DA;
+  --color-sand-200: #FFE3AF;
+  --color-sand-300: #FCD489;
+  --color-sand-700: #E69968;
+  --color-sand: #E69968;
+
+  --color-hl: #6ABBD3;
+}
+
+/* @theme {
+  --color-subtle: #FFEBC5;
+  --color-forward: #FFE3AF;
+  --color-bold: #E69968;
+  --color-highlight: #6ABBD3;
+} */
