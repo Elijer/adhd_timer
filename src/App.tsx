@@ -6,6 +6,7 @@ import {
   ArrowDownIcon,
   MagnifyingGlassIcon,
   Pencil1Icon,
+  StarFilledIcon,
 } from "@radix-ui/react-icons";
 
 import {
@@ -173,82 +174,71 @@ function App() {
                               snapshot.isDragging
                             )}`}
                           >
-                            <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex w-full items-center justify-between gap-1">
                               {/* Left-side text that can shrink but not wrap */}
                               <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden">
                                 {task.content}
                               </div>
 
                               {/* Right-side number inputs */}
-                              <div className="flex gap-2 shrink-0">
-                                {/* <input
+                              <div className="flex gap-2 shrink-0"></div>
+                              {/* <input
                                   value={0}
                                   type="number"
                                   className="w-16 px-2 py-1 text-right text-sand-300h"
                                 /> */}
-                                <input
-                                  type="number"
-                                  value={task.scores[0]}
-                                  onChange={(e) =>
-                                    handleScoreChange(e, task.id, 0)
+                              <input
+                                type="number"
+                                value={task.scores[0]}
+                                onChange={(e) =>
+                                  handleScoreChange(e, task.id, 0)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    (e.target as HTMLInputElement).blur();
                                   }
-                                  onFocus={() => {
-                                    setTempVal(task.scores[0]);
-                                    setTasks(
-                                      (tasks) =>
-                                        tasks.map((t) => {
-                                          if (t.id === task.id)
-                                            t.scores[0] = "";
-                                          console.log(t);
-                                          console.log(task);
-                                          return t;
-                                        })
-                                      // tasks.map((currentTask) => {
-                                      //   console.log(currentTask);
-                                      //   if ((currentTask.id = task.id)) {
-                                      //     task.scores[0] = "";
-                                      //   }
-                                      //   return task;
-                                      // })
-                                    );
-                                  }}
-                                  onBlur={() => {
-                                    setTasks(
-                                      (tasks) =>
-                                        tasks.map((t) => {
-                                          if (
-                                            t.id === task.id &&
-                                            task.scores[0] === ""
-                                          )
-                                            t.scores[0] = tempVal;
-                                          return t;
-                                        })
-                                      // tasks.map((currentTask) => {
-                                      //   console.log(currentTask);
-                                      //   if ((currentTask.id = task.id)) {
-                                      //     task.scores[0] = "";
-                                      //   }
-                                      //   return task;
-                                      // })
-                                    );
-                                    setTempVal("");
-                                  }}
-                                  className="
-                                    w-20 px-3 py-2
-                                    text-right text-sand 
+                                }}
+                                onFocus={() => {
+                                  setTempVal(task.scores[0]);
+                                  setTasks((tasks) =>
+                                    tasks.map((t) => {
+                                      if (t.id === task.id) t.scores[0] = "";
+                                      console.log(t);
+                                      console.log(task);
+                                      return t;
+                                    })
+                                  );
+                                }}
+                                onBlur={() => {
+                                  setTasks((tasks) =>
+                                    tasks.map((t) => {
+                                      if (
+                                        t.id === task.id &&
+                                        task.scores[0] === ""
+                                      )
+                                        t.scores[0] = tempVal;
+                                      return t;
+                                    })
+                                  );
+                                  setTempVal("");
+                                }}
+                                className="
+                                    w-20 px-1 py-2
+                                    text-right text-sand
                                     border-b-2 border-transparent
                                     focus:outline-none focus:ring-0 focus:border-sand
                                     appearance-none
                                     [&::-webkit-inner-spin-button]:appearance-none
                                     bg-transparent
+                                    hover:bg-sand-100 hover:cursor-pointer
                                   "
-                                />
-                                {/* <input
+                              />
+                              <StarFilledIcon className="mb-2 w-10 h-10 pl-0 mt-2" />
+                              {/* <input
                                   value={0}
                                   type="number"
                                   className="w-16 px-2 py-1 text-right text-sand-300h"
                                 /> */}
-                              </div>
                             </div>
                           </div>
                         )}
