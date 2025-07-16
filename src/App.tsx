@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import "./App.css";
 import "./index.css";
 import { Box, Button, TextField, VisuallyHidden } from "@radix-ui/themes";
@@ -7,6 +7,9 @@ import {
   MagnifyingGlassIcon,
   Pencil1Icon,
   StarFilledIcon,
+  TrashIcon,
+  PlayIcon,
+  PauseIcon,
 } from "@radix-ui/react-icons";
 
 import {
@@ -17,64 +20,51 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 
-function App() {
-  // const navItems = ["Importance", "Urgency", "Chart"];
+import { i, id, init } from "@instantdb/react";
+import schema from "../instant.schema";
 
-  type Task = {
-    id: string;
-    content: string;
-    scores: (number | "")[];
+const APP_ID = import.meta.env.VITE_INSTANT_APP_ID;
+const db = init({ appId: APP_ID, schema });
+
+function formatMinutes(time: number) {
+  const m = Math.floor(time);
+  return `${m.toString().padStart(2, "0")}:00`;
+}
+
+function App() {
+  const { isLoading, error, data } = db.useQuery({ todos: {} });
+  const [newText, setNewText] = useState("");
+  const [newMinutes, setNewMinutes] = useState("");
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  const todos = data.todos;
+
+  const handleAddTodo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newText.trim() || !newMinutes) return;
+    db.transact(
+      db.tx.todos[id()].update({
+        text: newText,
+        done: false,
+        time: Number(newMinutes),
+        createdAt: new Date(),
+      })
+    );
+    setNewText("");
+    setNewMinutes("");
   };
 
-  const initialTasks: Task[] = [
-    {
-      id: "1",
-      content: "thingy",
-      scores: [0, 0, 0],
-    },
-    {
-      id: "2",
-      content: "other thing",
-      scores: [0, 0, 0],
-    },
-    {
-      id: "3",
-      content: "yet other guy",
-      scores: [0, 0, 0],
-    },
-  ];
-
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [tempVal, setTempVal] = useState<number | "">("");
-  const taskCounter = useRef(77);
-
-  // TODO bring this back when uncommenting things
-  const makeNewTask = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const form = event.target as HTMLFormElement;
-    const taskName = form.elements.namedItem("taskName") as HTMLInputElement;
-    const newTask = taskName.value;
-    if (!newTask.trim()) return;
-    setTasks((currentTasks: Task[]) => [
-      ...currentTasks,
-      {
-        id: newTask + taskCounter.current,
-        content: newTask,
-        scores: [0, 0, 0],
-      },
-    ]);
-    console.log(tasks[tasks.length - 1]);
-    taskName.value = "";
-    taskCounter.current++;
+  const handleDelete = (todo: any) => {
+    db.transact(db.tx.todos[todo.id].delete());
   };
 
   // a little function to help us with reordering the result
   const reorder = (
-    list: Task[],
+    list: any[],
     startIndex: number,
     endIndex: number
-  ): Task[] => {
+  ): any[] => {
     const result = [...list];
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
@@ -87,13 +77,14 @@ function App() {
       return;
     }
 
-    const reorderedTasks = reorder(
-      tasks,
+    const reorderedTodos = reorder(
+      todos,
       result.source.index,
       result.destination.index
     );
 
-    setTasks(reorderedTasks);
+    // No need to update state here, InstantDB handles live updates
+    // setTodos(reorderedTodos);
   }
 
   function getAdditionalDragStyle(isDragging: boolean): string {
@@ -110,26 +101,24 @@ function App() {
   ) {
     const newScore = parseInt(e.target.value) || "";
 
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id !== taskId) return task;
+    // This function is no longer needed as InstantDB handles state
+    // setTodos((prevTodos) =>
+    //   prevTodos.map((todo) => {
+    //     if (todo.id !== taskId) return todo;
 
-        const updatedScores = [...task.scores];
-        updatedScores[scoreIndex] = newScore;
+    //     const updatedScores = [...todo.scores];
+    //     updatedScores[scoreIndex] = newScore;
 
-        return { ...task, scores: updatedScores };
-      })
-    );
+    //     return { ...todo, scores: updatedScores };
+    //   })
+    // );
   }
 
   return (
     <div className="flex flex-col items-center h-screen bg-sand-100 py-20 px-4">
       <div className="w-full max-w-5xl">
-        <form
-          onSubmit={makeNewTask}
-          className="flex text-5xl mb-36 mt-36 max-w"
-        >
-          <div className="flex mx-auto w-full">
+        <form onSubmit={handleAddTodo} className="flex text-5xl mb-36 mt-36 max-w">
+          <div className="flex mx-auto w-full gap-4">
             <input
               autoCorrect="off"
               autoComplete="off"
@@ -137,7 +126,17 @@ function App() {
               type="text"
               placeholder="add a task"
               name="taskName"
+              value={newText}
+              onChange={e => setNewText(e.target.value)}
               className="w-full pr-4 py-5 text-sand bg-sand-100 outline-none focus:border-higlight focus:text-sand border-b-1 pb-0"
+            />
+            <input
+              type="number"
+              min={1}
+              placeholder="min"
+              value={newMinutes}
+              onChange={e => setNewMinutes(e.target.value)}
+              className="w-32 px-2 py-5 text-sand bg-sand-100 outline-none focus:border-higlight border-b-1 pb-0"
             />
             <button
               type="submit"
@@ -148,106 +147,39 @@ function App() {
             </button>
           </div>
         </form>
-
         <div>
-          {/* className="flex gap-2 items-center text-5xl mb-8 mt-12" */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="droppable">
-              {(droppableProvided, droppableSnapshot) => {
-                return (
-                  <div
-                    ref={droppableProvided.innerRef}
-                    className="border-b-1 border-sand"
-                  >
-                    {tasks.map((task, index) => (
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand ${getAdditionalDragStyle(
-                              snapshot.isDragging
-                            )}`}
-                          >
-                            <div className="flex w-full items-center justify-between gap-1">
-                              {/* Left-side text that can shrink but not wrap */}
-                              <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden">
-                                {task.content}
-                              </div>
-
-                              {/* Right-side number inputs */}
-                              <div className="flex gap-2 shrink-0"></div>
-                              {/* <input
-                                  value={0}
-                                  type="number"
-                                  className="w-16 px-2 py-1 text-right text-sand-300h"
-                                /> */}
-                              <input
-                                type="number"
-                                value={task.scores[0]}
-                                onChange={(e) =>
-                                  handleScoreChange(e, task.id, 0)
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                }}
-                                onFocus={() => {
-                                  setTempVal(task.scores[0]);
-                                  setTasks((tasks) =>
-                                    tasks.map((t) => {
-                                      if (t.id === task.id) t.scores[0] = "";
-                                      console.log(t);
-                                      console.log(task);
-                                      return t;
-                                    })
-                                  );
-                                }}
-                                onBlur={() => {
-                                  setTasks((tasks) =>
-                                    tasks.map((t) => {
-                                      if (
-                                        t.id === task.id &&
-                                        task.scores[0] === ""
-                                      )
-                                        t.scores[0] = tempVal;
-                                      return t;
-                                    })
-                                  );
-                                  setTempVal("");
-                                }}
-                                className="
-                                    w-20 px-1 py-2
-                                    text-right text-sand
-                                    border-b-2 border-transparent
-                                    focus:outline-none focus:ring-0 focus:border-sand
-                                    appearance-none
-                                    [&::-webkit-inner-spin-button]:appearance-none
-                                    bg-transparent
-                                    hover:bg-sand-100 hover:cursor-pointer
-                                  "
-                              />
-                              <StarFilledIcon className="mb-2 w-10 h-10 pl-0 mt-2" />
-                              {/* <input
-                                  value={0}
-                                  type="number"
-                                  className="w-16 px-2 py-1 text-right text-sand-300h"
-                                /> */}
+              {(droppableProvided) => (
+                <div ref={droppableProvided.innerRef} className="border-b-1 border-sand">
+                  {todos.map((todo: any, index: number) => (
+                    <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand bg-sand-200 border-b-0"
+                        >
+                          <div className="flex w-full items-center justify-between gap-1">
+                            <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden">
+                              {todo.text}
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="w-24 text-right">{formatMinutes(todo.time)}</span>
+                              <button onClick={() => handleDelete(todo)} className="hover:text-red-500">
+                                <TrashIcon className="w-8 h-8" />
+                                <VisuallyHidden>Delete</VisuallyHidden>
+                              </button>
                             </div>
                           </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {droppableProvided.placeholder}
-                  </div>
-                );
-              }}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {droppableProvided.placeholder}
+                </div>
+              )}
             </Droppable>
           </DragDropContext>
         </div>
