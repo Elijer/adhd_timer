@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "schema": "npx instant-cli@latest push schema"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@instantdb/core": "^0.20.9",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/themes": "^3.2.1",
     "@tailwindcss/vite": "^4.1.8",
