@@ -25,3 +25,7 @@ Things I've been learning
 
 - I'm kind of bad at managing my time
 - By jumping to the first existing solutions of repurposing other people's code, it's very easy for me to actually waste a LOT of time with overly complex implementations of deprecated tools 😬
+
+# ADHD TIMER
+## Feature Ideas
+- Save ACTUAL time - so time can go negative - one it starts going negative, the aggregate timer should stop, and if you stop it BEFORE, it will save the amount of time it actually took, and the aggreage timer will subtract the entire time from the todo of course, since it's been marked as complete
