@@ -22,26 +22,23 @@ import schema from "../instant.schema";
 const APP_ID = import.meta.env.VITE_INSTANT_DB;
 const db = init({ appId: APP_ID, schema });
 
-function formatMinutes(time: number, showSeconds: boolean = false) {
+function formatMinutes(timeInSeconds: number, showSeconds: boolean = false) {
   if (showSeconds) {
     // Show as MM:SS when counting down
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   } else {
-    // Show as hours/minutes for static display
-    const hours = Math.floor(time / 60);
-    const minutes = time % 60;
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}`;
-    }
-    return `${minutes}:00`;
+    // Show as MM:SS for static display too, based on seconds
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 }
 
-function formatTotalTime(totalMinutes: number) {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+function formatTotalTime(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.ceil((totalSeconds % 3600) / 60);
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
@@ -94,15 +91,15 @@ function App() {
       return;
     }
 
-    // Initialize local time in seconds if not set ^
+    // Initialize local time in seconds if not set (time is now stored in seconds) ^
     if (!(activeTimerId in localTimes)) {
-      setLocalTimes(prev => ({ ...prev, [activeTimerId]: (activeTodo.time as number) * 60 }));
+      setLocalTimes(prev => ({ ...prev, [activeTimerId]: activeTodo.time as number }));
     }
 
     // Update UI every second ^
     intervalRef.current = setInterval(() => {
       setLocalTimes(prev => {
-        const currentTime = prev[activeTimerId] ?? ((activeTodo.time as number) * 60);
+        const currentTime = prev[activeTimerId] ?? (activeTodo.time as number);
         const newTime = Math.max(0, currentTime - 1);
         
         // Check if timer reached 0 ^
@@ -122,9 +119,9 @@ function App() {
       setLocalTimes(prev => {
         const currentTimeInSeconds = prev[activeTimerId];
         if (currentTimeInSeconds !== undefined) {
-          const timeInMinutes = Math.ceil(currentTimeInSeconds / 60); // Convert back to minutes
+          // Time is now stored directly in seconds ^
           db.transact(
-            db.tx.todos[activeTimerId].update({ time: timeInMinutes })
+            db.tx.todos[activeTimerId].update({ time: currentTimeInSeconds })
           );
         }
         return prev;
@@ -140,8 +137,8 @@ function App() {
   // All hooks called above this point - now safe for early returns ^
   const todos = data?.todos || [];
 
-  // Calculate total time for all todos (using original times, not countdown) ^
-  const totalMinutes = todos.reduce((sum: number, todo: any) => sum + todo.time, 0);
+  // Calculate total time for all todos (time is now in seconds, convert for display) ^
+  const totalSeconds = todos.reduce((sum: number, todo: any) => sum + todo.time, 0);
 
   // Early returns after all hooks ^
   if (isLoading) return <div>Loading...</div>;
@@ -150,11 +147,13 @@ function App() {
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newText.trim() || !newMinutes) return;
+    // Convert minutes input to seconds for storage ^
+    const timeInSeconds = Number(newMinutes) * 60;
     db.transact(
       db.tx.todos[id()].update({
         text: newText,
         done: false,
-        time: Number(newMinutes),
+        time: timeInSeconds,
         createdAt: new Date(),
       })
     );
@@ -177,11 +176,10 @@ function App() {
 
   const handleToggleTimer = (todo: any) => {
     if (activeTimerId === todo.id) {
-      // Pause current timer and save current time to DB ^
-      const currentTimeInSeconds = localTimes[todo.id] ?? (todo.time * 60);
-      const timeInMinutes = Math.ceil(currentTimeInSeconds / 60);
+      // Pause current timer and save current time to DB in seconds ^
+      const currentTimeInSeconds = localTimes[todo.id] ?? todo.time;
       db.transact(
-        db.tx.todos[todo.id].update({ time: timeInMinutes })
+        db.tx.todos[todo.id].update({ time: currentTimeInSeconds })
       );
       setActiveTimerId(null);
     } else {
@@ -202,7 +200,7 @@ function App() {
         <div className="text-center mb-8">
           <h1 className="text-4xl text-sand-700 mb-2">Total Time</h1>
           <div className="text-6xl text-sand font-bold">
-            {formatTotalTime(totalMinutes)}
+            {formatTotalTime(totalSeconds)}
           </div>
         </div>
 
@@ -257,16 +255,16 @@ function App() {
                               {todo.text}
                             </div>
                             <div className="flex items-center gap-4">
-                              <span className={`w-24 text-right ${(localTimes[todo.id] ?? (todo.time * 60)) === 0 ? 'text-red-500 font-bold' : ''}`}>
+                              <span className={`w-24 text-right ${(localTimes[todo.id] ?? todo.time) === 0 ? 'text-red-500 font-bold' : ''}`}>
                                 {activeTimerId === todo.id 
-                                  ? formatMinutes(localTimes[todo.id] ?? (todo.time * 60), true)
+                                  ? formatMinutes(localTimes[todo.id] ?? todo.time, true)
                                   : formatMinutes(todo.time, false)
                                 }
                               </span>
                               <button 
                                 onClick={() => handleToggleTimer(todo)} 
                                 className="hover:text-blue-500"
-                                disabled={(localTimes[todo.id] ?? (todo.time * 60)) === 0}
+                                disabled={(localTimes[todo.id] ?? todo.time) === 0}
                               >
                                 {activeTimerId === todo.id ? (
                                   <PauseIcon className="w-8 h-8" />
