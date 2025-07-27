@@ -16,7 +16,7 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 
-import { i, id, init } from "@instantdb/react";
+import { id, init } from "@instantdb/react";
 import schema from "../instant.schema";
 
 const APP_ID = import.meta.env.VITE_INSTANT_DB;
