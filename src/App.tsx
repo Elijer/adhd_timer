@@ -45,18 +45,6 @@ function formatTotalTime(totalSeconds: number) {
   return `${minutes}m`;
 }
 
-function App() {
-  const { isLoading, error, data } = db.useQuery({ todos: {} });
-  const [newText, setNewText] = useState("");
-  const [newMinutes, setNewMinutes] = useState("");
-  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
-  const [localTimes, setLocalTimes] = useState<Record<string, number>>({});
-  const intervalRef = useRef<number | null>(null);
-  const dbUpdateRef = useRef<number | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Initialize audio for alarm - moved before early returns ^
-  useEffect(() => {
     // Create a simple beep sound using Web Audio API ^
     const createBeepSound = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -73,6 +61,19 @@ function App() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 1);
     };
+
+function App() {
+  const { isLoading, error, data } = db.useQuery({ todos: {} });
+  const [newText, setNewText] = useState("");
+  const [newMinutes, setNewMinutes] = useState("");
+  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
+  const [localTimes, setLocalTimes] = useState<Record<string, number>>({});
+  const intervalRef = useRef<number | null>(null);
+  const dbUpdateRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio for alarm - moved before early returns ^
+  useEffect(() => {
 
     audioRef.current = { play: createBeepSound } as any;
   }, []);
@@ -194,7 +195,7 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col items-center h-screen bg-sand-100 py-20 px-4">
+    <div className="flex flex-col items-center min-h-screen bg-sand-100 py-20 px-4 pb-32">
       <div className="w-full max-w-5xl">
         {/* Total Time Display ^ */}
         <div className="text-center mb-8">
