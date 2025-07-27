@@ -1,44 +1,151 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import "./index.css";
-import { Box, Button, TextField, VisuallyHidden } from "@radix-ui/themes";
+import { VisuallyHidden } from "@radix-ui/themes";
 import {
-  ArrowDownIcon,
-  MagnifyingGlassIcon,
   Pencil1Icon,
   StarFilledIcon,
   TrashIcon,
   PlayIcon,
   PauseIcon,
 } from "@radix-ui/react-icons";
-
 import {
   DragDropContext,
   Droppable,
   Draggable,
-  DraggableStyle,
   DropResult,
 } from "@hello-pangea/dnd";
 
 import { i, id, init } from "@instantdb/react";
 import schema from "../instant.schema";
 
-const APP_ID = import.meta.env.VITE_INSTANT_APP_ID;
+const APP_ID = import.meta.env.VITE_INSTANT_DB;
 const db = init({ appId: APP_ID, schema });
 
-function formatMinutes(time: number) {
-  const m = Math.floor(time);
-  return `${m.toString().padStart(2, "0")}:00`;
+function formatMinutes(time: number, showSeconds: boolean = false) {
+  if (showSeconds) {
+    // Show as MM:SS when counting down
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  } else {
+    // Show as hours/minutes for static display
+    const hours = Math.floor(time / 60);
+    const minutes = time % 60;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}`;
+    }
+    return `${minutes}:00`;
+  }
+}
+
+function formatTotalTime(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
 }
 
 function App() {
   const { isLoading, error, data } = db.useQuery({ todos: {} });
   const [newText, setNewText] = useState("");
   const [newMinutes, setNewMinutes] = useState("");
+  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
+  const [localTimes, setLocalTimes] = useState<Record<string, number>>({});
+  const intervalRef = useRef<number | null>(null);
+  const dbUpdateRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialize audio for alarm - moved before early returns ^
+  useEffect(() => {
+    // Create a simple beep sound using Web Audio API ^
+    const createBeepSound = () => {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // 800 Hz beep
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 1);
+    };
+
+    audioRef.current = { play: createBeepSound } as any;
+  }, []);
+
+  // Timer logic - count down every second - moved before early returns ^
+  useEffect(() => {
+    if (!activeTimerId) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (dbUpdateRef.current) clearInterval(dbUpdateRef.current);
+      return;
+    }
+
+    const activeTodo = todos.find((todo: any) => todo.id === activeTimerId);
+    if (!activeTodo) {
+      setActiveTimerId(null);
+      return;
+    }
+
+    // Initialize local time in seconds if not set ^
+    if (!(activeTimerId in localTimes)) {
+      setLocalTimes(prev => ({ ...prev, [activeTimerId]: (activeTodo.time as number) * 60 }));
+    }
+
+    // Update UI every second ^
+    intervalRef.current = setInterval(() => {
+      setLocalTimes(prev => {
+        const currentTime = prev[activeTimerId] ?? ((activeTodo.time as number) * 60);
+        const newTime = Math.max(0, currentTime - 1);
+        
+        // Check if timer reached 0 ^
+        if (newTime === 0) {
+          setActiveTimerId(null);
+          if (audioRef.current) {
+            audioRef.current.play();
+          }
+        }
+        
+        return { ...prev, [activeTimerId]: newTime };
+      });
+    }, 1000); // Update every second
+
+    // Update database every 20 seconds ^
+    dbUpdateRef.current = setInterval(() => {
+      setLocalTimes(prev => {
+        const currentTimeInSeconds = prev[activeTimerId];
+        if (currentTimeInSeconds !== undefined) {
+          const timeInMinutes = Math.ceil(currentTimeInSeconds / 60); // Convert back to minutes
+          db.transact(
+            db.tx.todos[activeTimerId].update({ time: timeInMinutes })
+          );
+        }
+        return prev;
+      });
+    }, 20000); // Update DB every 20 seconds
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (dbUpdateRef.current) clearInterval(dbUpdateRef.current);
+    };
+  }, [activeTimerId, data?.todos, localTimes]);
+
+  // All hooks called above this point - now safe for early returns ^
+  const todos = data?.todos || [];
+
+  // Calculate total time for all todos (using original times, not countdown) ^
+  const totalMinutes = todos.reduce((sum: number, todo: any) => sum + todo.time, 0);
+
+  // Early returns after all hooks ^
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
-  const todos = data.todos;
 
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,67 +163,49 @@ function App() {
   };
 
   const handleDelete = (todo: any) => {
+    if (activeTimerId === todo.id) {
+      setActiveTimerId(null);
+    }
+    // Clean up local time state ^
+    setLocalTimes(prev => {
+      const newTimes = { ...prev };
+      delete newTimes[todo.id];
+      return newTimes;
+    });
     db.transact(db.tx.todos[todo.id].delete());
   };
 
-  // a little function to help us with reordering the result
-  const reorder = (
-    list: any[],
-    startIndex: number,
-    endIndex: number
-  ): any[] => {
-    const result = [...list];
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-
-    return result;
+  const handleToggleTimer = (todo: any) => {
+    if (activeTimerId === todo.id) {
+      // Pause current timer and save current time to DB ^
+      const currentTimeInSeconds = localTimes[todo.id] ?? (todo.time * 60);
+      const timeInMinutes = Math.ceil(currentTimeInSeconds / 60);
+      db.transact(
+        db.tx.todos[todo.id].update({ time: timeInMinutes })
+      );
+      setActiveTimerId(null);
+    } else {
+      // Start new timer (stops any other running timer) ^
+      setActiveTimerId(todo.id);
+    }
   };
 
-  function onDragEnd(result: DropResult) {
-    if (!result.destination) {
-      return;
-    }
-
-    const reorderedTodos = reorder(
-      todos,
-      result.source.index,
-      result.destination.index
-    );
-
-    // No need to update state here, InstantDB handles live updates
-    // setTodos(reorderedTodos);
-  }
-
-  function getAdditionalDragStyle(isDragging: boolean): string {
-    // let baseStyle =
-    //   "flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand ";
-    const values = isDragging ? "bg-sand-300" : "bg-sand-200 border-b-0";
-    return " " + values;
-  }
-
-  function handleScoreChange(
-    e: React.ChangeEvent<HTMLInputElement>,
-    taskId: string,
-    scoreIndex: number
-  ) {
-    const newScore = parseInt(e.target.value) || "";
-
-    // This function is no longer needed as InstantDB handles state
-    // setTodos((prevTodos) =>
-    //   prevTodos.map((todo) => {
-    //     if (todo.id !== taskId) return todo;
-
-    //     const updatedScores = [...todo.scores];
-    //     updatedScores[scoreIndex] = newScore;
-
-    //     return { ...todo, scores: updatedScores };
-    //   })
-    // );
-  }
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    // Drag and drop logic can be implemented later if needed ^
+  };
 
   return (
     <div className="flex flex-col items-center h-screen bg-sand-100 py-20 px-4">
       <div className="w-full max-w-5xl">
+        {/* Total Time Display ^ */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl text-sand-700 mb-2">Total Time</h1>
+          <div className="text-6xl text-sand font-bold">
+            {formatTotalTime(totalMinutes)}
+          </div>
+        </div>
+
         <form onSubmit={handleAddTodo} className="flex text-5xl mb-36 mt-36 max-w">
           <div className="flex mx-auto w-full gap-4">
             <input
@@ -148,10 +237,10 @@ function App() {
           </div>
         </form>
         <div>
-          <DragDropContext onDragEnd={onDragEnd}>
+          <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="droppable">
               {(droppableProvided) => (
-                <div ref={droppableProvided.innerRef} className="border-b-1 border-sand">
+                <div ref={droppableProvided.innerRef} className={`${todos && todos.length > 0 ? 'border-b-1 border-sand' : ''}`}>
                   {todos.map((todo: any, index: number) => (
                     <Draggable key={todo.id} draggableId={todo.id} index={index}>
                       {(provided) => (
@@ -159,14 +248,35 @@ function App() {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className="flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand bg-sand-200 border-b-0"
+                          className={`flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand border-b-0 ${
+                            activeTimerId === todo.id ? 'bg-sand-300' : 'bg-sand-200'
+                          }`}
                         >
                           <div className="flex w-full items-center justify-between gap-1">
                             <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden">
                               {todo.text}
                             </div>
                             <div className="flex items-center gap-4">
-                              <span className="w-24 text-right">{formatMinutes(todo.time)}</span>
+                              <span className={`w-24 text-right ${(localTimes[todo.id] ?? (todo.time * 60)) === 0 ? 'text-red-500 font-bold' : ''}`}>
+                                {activeTimerId === todo.id 
+                                  ? formatMinutes(localTimes[todo.id] ?? (todo.time * 60), true)
+                                  : formatMinutes(todo.time, false)
+                                }
+                              </span>
+                              <button 
+                                onClick={() => handleToggleTimer(todo)} 
+                                className="hover:text-blue-500"
+                                disabled={(localTimes[todo.id] ?? (todo.time * 60)) === 0}
+                              >
+                                {activeTimerId === todo.id ? (
+                                  <PauseIcon className="w-8 h-8" />
+                                ) : (
+                                  <PlayIcon className="w-8 h-8" />
+                                )}
+                                <VisuallyHidden>
+                                  {activeTimerId === todo.id ? 'Pause' : 'Play'}
+                                </VisuallyHidden>
+                              </button>
                               <button onClick={() => handleDelete(todo)} className="hover:text-red-500">
                                 <TrashIcon className="w-8 h-8" />
                                 <VisuallyHidden>Delete</VisuallyHidden>
