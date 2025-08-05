@@ -29,3 +29,14 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Header font styling ^ */
+@font-face {
+  font-family: 'SevenSegment';
+  src: url('./assets/fonts/DS-DIGII.TTF') format('truetype');
+  /* src: url('./assets/fonts/DS-DIGIB.TTF') format('truetype'); */
+}
+
+.header-font {
+  font-family: 'SevenSegment', sans-serif;
+}

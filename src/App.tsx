@@ -104,7 +104,8 @@ function Login() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-sand-100 py-20 px-4">
       <div className="text-center border-1 border-sand-700/20 p-16">
         {/* <p className="text-3xl text-sand/80 mb-0">Have a PHD in ADHD?</p> */}
-        <h1 className="text-6xl text-sand-700 mb-16">ADHD Time</h1>
+        <h1 className="text-6xl text-sand-700 header-font">AD:HD</h1>
+        <h1 className="text-sm text-sand-700/90 mb-16">For those on adhd time</h1>
         <div className="flex justify-center items-center">
           <GoogleLogin
             nonce={nonce}
