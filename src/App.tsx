@@ -4,7 +4,7 @@ import "./index.css";
 import { VisuallyHidden } from "@radix-ui/themes";
 import {
   Pencil1Icon,
-  StarFilledIcon,
+  // StarFilledIcon,
   TrashIcon,
   PlayIcon,
   PauseIcon,
@@ -196,23 +196,24 @@ function App() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-sand-100 py-20 px-4 pb-32">
-      <div className="w-full max-w-5xl">
+      <div className="w-full max-w-3xl">
         {/* Total Time Display ^ */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl text-sand-700 mb-2">Total Time</h1>
+        <div className="text-center">
+          {/* <h1 className="text-lg text-sand-700/60 mb-2">ADHD Timer</h1> */}
+          <h1 className="text-lg text-sand-700/60 mb-2">Time you need for stuff:</h1>
           <div className="text-6xl text-sand font-bold">
             {formatTotalTime(totalSeconds)}
           </div>
         </div>
 
-        <form onSubmit={handleAddTodo} className="flex text-5xl mb-36 mt-36 max-w">
-          <div className="flex mx-auto w-full gap-4">
+        <form onSubmit={handleAddTodo} className="flex text-4xl mb-18 mt-16">
+          <div className="flex mx-auto w-full">
             <input
               autoCorrect="off"
               autoComplete="off"
               spellCheck="false"
               type="text"
-              placeholder="add a task"
+              placeholder="task"
               name="taskName"
               value={newText}
               onChange={e => setNewText(e.target.value)}
@@ -221,7 +222,7 @@ function App() {
             <input
               type="number"
               min={1}
-              placeholder="min"
+              placeholder="mins"
               value={newMinutes}
               onChange={e => setNewMinutes(e.target.value)}
               className="w-32 px-2 py-5 text-sand bg-sand-100 outline-none focus:border-higlight border-b-1 pb-0"
@@ -230,7 +231,7 @@ function App() {
               type="submit"
               className="text-xs gap-2 px-8 py-5 text-sand border-b-1 bg-forward cursor-pointer transition hover:bg-sand hover:text-sand-200"
             >
-              <Pencil1Icon className="w-10 h-10 mt-2" />
+              <Pencil1Icon className="w-10 h-10" />
               <VisuallyHidden>add</VisuallyHidden>
             </button>
           </div>
