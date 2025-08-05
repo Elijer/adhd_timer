@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
+html {
+  background-color: #FFF2DA;
+}
+
 /*
+
 
 .header {
   margin: 0px;
