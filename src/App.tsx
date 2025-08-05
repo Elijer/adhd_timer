@@ -139,6 +139,24 @@ function Login() {
   );
 }
 
+// CompletionTime component to show estimated completion time ^
+function CompletionTime({ totalSeconds }: { totalSeconds: number }) {
+  if (totalSeconds <= 0) return null;
+  
+  return (
+    <>
+      {" "}/{" "}
+      <span>
+        {new Date(Date.now() + totalSeconds * 1000).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true
+        })}
+      </span>
+    </>
+  );
+}
+
 // Navbar component ^
 function Navbar({ user }: { user: any }) {
   const handleLogout = () => {
@@ -375,10 +393,13 @@ function AuthenticatedApp({ user }: { user: any }) {
 
         {/* Total Time Display ^ */}
         <div className="text-center">
-          <h1 className="text-lg text-sand-700/60 mb-2">Time you need for stuff:</h1>
           <div className="text-6xl text-sand font-bold">
             {formatTotalTime(totalSeconds)}
           </div>
+          <h1 className="text-lg text-sand-700/60">
+            {data.todos.length} thangs
+            <CompletionTime totalSeconds={totalSeconds} />
+          </h1>
         </div>
 
         <form onSubmit={handleAddTodo} className="flex text-3xl sm:text-4xl mb-12 sm:mb-18 mt-12 sm:mt-16">
