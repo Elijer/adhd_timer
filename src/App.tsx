@@ -8,6 +8,7 @@ import {
   TrashIcon,
   PlayIcon,
   PauseIcon,
+  ExitIcon,
 } from "@radix-ui/react-icons";
 import {
   DragDropContext,
@@ -15,11 +16,14 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 import { id, init } from "@instantdb/react";
 import schema from "../instant.schema";
 
 const APP_ID = import.meta.env.VITE_INSTANT_DB;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_NAME = import.meta.env.VITE_GOOGLE_CLIENT_NAME;
 const db = init({ appId: APP_ID, schema });
 
 function formatMinutes(timeInSeconds: number, showSeconds: boolean = false) {
@@ -62,7 +66,37 @@ function formatTotalTime(totalSeconds: number) {
       oscillator.stop(audioContext.currentTime + 1);
     };
 
-function App() {
+// Login component for unauthenticated users ^
+function Login() {
+  const [nonce] = useState(crypto.randomUUID());
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-sand-100 py-20 px-4">
+      <div className="text-center border-1 border-sand-700/20 p-16">
+        {/* <p className="text-3xl text-sand/80 mb-0">Have a PHD in ADHD?</p> */}
+        <h1 className="text-6xl text-sand-700 mb-16">ADHD Time</h1>
+        <GoogleLogin
+          nonce={nonce}
+          onError={() => alert('Login failed')}
+          onSuccess={({ credential }) => {
+            db.auth
+              .signInWithIdToken({
+                clientName: GOOGLE_CLIENT_NAME,
+                idToken: credential,
+                nonce,
+              })
+              .catch((err) => {
+                alert('Login error: ' + err.body?.message);
+              });
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Main authenticated app component ^
+function AuthenticatedApp({ user }: { user: any }) {
   const { isLoading, error, data } = db.useQuery({ todos: {} });
   const [newText, setNewText] = useState("");
   const [newMinutes, setNewMinutes] = useState("");
@@ -74,7 +108,6 @@ function App() {
 
   // Initialize audio for alarm - moved before early returns ^
   useEffect(() => {
-
     audioRef.current = { play: createBeepSound } as any;
   }, []);
 
@@ -148,7 +181,7 @@ function App() {
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newText.trim() || !newMinutes) return;
-    // Convert minutes input to seconds for storage ^
+    // Convert minutes input to seconds for storage and include creatorId ^
     const timeInSeconds = Number(newMinutes) * 60;
     db.transact(
       db.tx.todos[id()].update({
@@ -156,6 +189,7 @@ function App() {
         done: false,
         time: timeInSeconds,
         createdAt: new Date(),
+        creatorId: user.id,
       })
     );
     setNewText("");
@@ -194,12 +228,29 @@ function App() {
     // Drag and drop logic can be implemented later if needed ^
   };
 
+  const handleLogout = () => {
+    db.auth.signOut();
+  };
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-sand-100 py-20 px-4 pb-32">
       <div className="w-full max-w-3xl">
+        {/* Header with user info and logout ^ */}
+        <div className="flex justify-end items-center mb-8">
+          <div className="flex items-center gap-4 text-sand-700">
+            <span className="text-lg">{user.email}</span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-sand bg-sand-200 rounded hover:bg-sand-300 transition"
+            >
+              <ExitIcon className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
         {/* Total Time Display ^ */}
         <div className="text-center">
-          {/* <h1 className="text-lg text-sand-700/60 mb-2">ADHD Timer</h1> */}
           <h1 className="text-lg text-sand-700/60 mb-2">Time you need for stuff:</h1>
           <div className="text-6xl text-sand font-bold">
             {formatTotalTime(totalSeconds)}
@@ -295,6 +346,33 @@ function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main App component with auth routing ^
+function App() {
+  const { isLoading, user, error } = db.useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-sand-100">
+        <div className="text-2xl text-sand-700">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-sand-100">
+        <div className="text-2xl text-red-500">Error: {error.message}</div>
+      </div>
+    );
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {user ? <AuthenticatedApp user={user} /> : <Login />}
+    </GoogleOAuthProvider>
   );
 }
 

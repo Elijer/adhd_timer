@@ -16,9 +16,15 @@ const _schema = i.schema({
       done: i.boolean(),
       time: i.number(),
       createdAt: i.date(),
+      creatorId: i.string().indexed(),
     }),
   },
-  links: {},
+  links: {
+    todoCreator: {
+      forward: { on: "todos", has: "one", label: "creator" },
+      reverse: { on: "$users", has: "many", label: "todos" },
+    },
+  },
   rooms: {},
 });
 
