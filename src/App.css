@@ -40,3 +40,5 @@ input[type="number"] {
 .header-font {
   font-family: 'SevenSegment', sans-serif;
 }
+
+/* Mobile styles now handled by Tailwind responsive classes */

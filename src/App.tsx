@@ -309,34 +309,38 @@ function AuthenticatedApp({ user }: { user: any }) {
           </div>
         </div>
 
-        <form onSubmit={handleAddTodo} className="flex text-4xl mb-18 mt-16">
-          <div className="flex mx-auto w-full">
-            <input
-              autoCorrect="off"
-              autoComplete="off"
-              spellCheck="false"
-              type="text"
-              placeholder="task"
-              name="taskName"
-              value={newText}
-              onChange={e => setNewText(e.target.value)}
-              className="w-full pr-4 py-5 text-sand bg-sand-100 outline-none focus:border-higlight focus:text-sand border-b-1 pb-0"
-            />
-            <input
-              type="number"
-              min={1}
-              placeholder="mins"
-              value={newMinutes}
-              onChange={e => setNewMinutes(e.target.value)}
-              className="w-32 px-2 py-5 text-sand bg-sand-100 outline-none focus:border-higlight border-b-1 pb-0"
-            />
-            <button
-              type="submit"
-              className="text-xs gap-2 px-8 py-5 text-sand border-b-1 bg-forward cursor-pointer transition hover:bg-sand hover:text-sand-200"
-            >
-              <Pencil1Icon className="w-10 h-10" />
-              <VisuallyHidden>add</VisuallyHidden>
-            </button>
+        <form onSubmit={handleAddTodo} className="flex text-3xl sm:text-4xl mb-12 sm:mb-18 mt-12 sm:mt-16">
+          <div className="flex flex-col sm:flex-row mx-auto w-full">
+            <div className="flex-1 mb-4 sm:mb-0">
+              <input
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck="false"
+                type="text"
+                placeholder="task"
+                name="taskName"
+                value={newText}
+                onChange={e => setNewText(e.target.value)}
+                className="w-full pr-4 py-3 sm:py-5 text-sand bg-sand-100 outline-none focus:border-higlight focus:text-sand border-b-1 pb-0"
+              />
+            </div>
+            <div className="flex">
+              <input
+                type="number"
+                min={1}
+                placeholder="mins"
+                value={newMinutes}
+                onChange={e => setNewMinutes(e.target.value)}
+                className="w-24 sm:w-32 px-2 py-3 sm:py-5 text-sand bg-sand-100 outline-none focus:border-higlight border-b-1 pb-0"
+              />
+              <button
+                type="submit"
+                className="text-xs gap-2 px-4 sm:px-8 py-3 sm:py-5 text-sand border-b-1 bg-forward cursor-pointer transition hover:bg-sand hover:text-sand-200"
+              >
+                <Pencil1Icon className="w-8 h-8 sm:w-10 sm:h-10" />
+                <VisuallyHidden>add</VisuallyHidden>
+              </button>
+            </div>
           </div>
         </form>
         <div>
@@ -351,16 +355,16 @@ function AuthenticatedApp({ user }: { user: any }) {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`flex-1 p-10 border-1 text-3xl outline-none border-sand text-sand border-b-0 ${
+                          className={`flex-1 p-4 sm:p-10 border-1 text-2xl sm:text-3xl outline-none border-sand text-sand border-b-0 ${
                             activeTimerId === todo.id ? 'bg-sand-300' : 'bg-sand-200'
                           }`}
                         >
-                          <div className="flex w-full items-center justify-between gap-1">
-                            <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden">
+                          <div className="flex flex-col sm:flex-row w-full items-start sm:items-center justify-between gap-2">
+                            <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden mb-2 sm:mb-0">
                               {todo.text}
                             </div>
-                            <div className="flex items-center gap-4">
-                              <span className={`w-24 text-right ${(localTimes[todo.id] ?? todo.time) === 0 ? 'text-red-500 font-bold' : ''}`}>
+                            <div className="flex items-center justify-end w-full sm:w-auto gap-3 sm:gap-4 mt-1 sm:mt-0">
+                              <span className={`w-20 sm:w-24 text-right ${(localTimes[todo.id] ?? todo.time) === 0 ? 'text-red-500 font-bold' : ''}`}>
                                 {activeTimerId === todo.id 
                                   ? formatMinutes(localTimes[todo.id] ?? todo.time, true)
                                   : formatMinutes(todo.time, false)
@@ -368,20 +372,20 @@ function AuthenticatedApp({ user }: { user: any }) {
                               </span>
                               <button 
                                 onClick={() => handleToggleTimer(todo)} 
-                                className="hover:text-blue-500"
+                                className="hover:text-blue-500 ml-2"
                                 disabled={(localTimes[todo.id] ?? todo.time) === 0}
                               >
                                 {activeTimerId === todo.id ? (
-                                  <PauseIcon className="w-8 h-8" />
+                                  <PauseIcon className="w-7 h-7 sm:w-8 sm:h-8" />
                                 ) : (
-                                  <PlayIcon className="w-8 h-8" />
+                                  <PlayIcon className="w-7 h-7 sm:w-8 sm:h-8" />
                                 )}
                                 <VisuallyHidden>
                                   {activeTimerId === todo.id ? 'Pause' : 'Play'}
                                 </VisuallyHidden>
                               </button>
-                              <button onClick={() => handleDelete(todo)} className="hover:text-red-500">
-                                <TrashIcon className="w-8 h-8" />
+                              <button onClick={() => handleDelete(todo)} className="hover:text-red-500 ml-2">
+                                <TrashIcon className="w-7 h-7 sm:w-8 sm:h-8" />
                                 <VisuallyHidden>Delete</VisuallyHidden>
                               </button>
                             </div>
