@@ -125,19 +125,7 @@ function Login() {
               });
           }}
         />
-        
-        {/* Temporary logout button for debugging ^ */}
-        <div className="mt-8">
-          <button
-            onClick={() => {
-              console.log('Manually logging out...');
-              db.auth.signOut();
-            }}
-            className="px-4 py-2 bg-red-200 text-red-800 rounded hover:bg-red-300"
-          >
-            Debug Logout
-          </button>
-        </div>
+      
       </div>
     </div>
   );
