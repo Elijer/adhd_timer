@@ -111,20 +111,25 @@ function Login() {
             nonce={nonce}
             onError={() => alert('Login failed')}
             onSuccess={({ credential }) => {
-              console.log('Google login success, signing in with Instant...');
-              db.auth
-                .signInWithIdToken({
-                  clientName: GOOGLE_CLIENT_NAME!,
-                  idToken: credential,
-                  nonce,
-                })
-                .then(() => {
-                  console.log('Instant sign in successful');
-                })
-                .catch((err) => {
-                  console.error('Instant sign in error:', err);
-                  alert('Login error: ' + (err.body?.message || err.message));
-                });
+              if (credential) {
+                console.log('Google login success, signing in with Instant...');
+                db.auth
+                  .signInWithIdToken({
+                    clientName: GOOGLE_CLIENT_NAME,
+                    idToken: credential,
+                    nonce,
+                  })
+                  .then(() => {
+                    console.log('Instant sign in successful');
+                  })
+                  .catch((err) => {
+                    console.error('Instant sign in error:', err);
+                    alert('Login error: ' + (err.body?.message || err.message));
+                  });
+              } else {
+                console.error('Credential is undefined');
+                alert('Login failed: Credential is undefined');
+              }
             }}
           />
         </div>
