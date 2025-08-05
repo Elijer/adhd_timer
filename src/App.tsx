@@ -105,29 +105,54 @@ function Login() {
       <div className="text-center border-1 border-sand-700/20 p-16">
         {/* <p className="text-3xl text-sand/80 mb-0">Have a PHD in ADHD?</p> */}
         <h1 className="text-6xl text-sand-700 mb-16">ADHD Time</h1>
-        <GoogleLogin
-          nonce={nonce}
-          onError={() => alert('Login failed')}
-          onSuccess={({ credential }) => {
-            console.log('Google login success, signing in with Instant...');
-            db.auth
-              .signInWithIdToken({
-                clientName: GOOGLE_CLIENT_NAME,
-                idToken: credential,
-                nonce,
-              })
-              .then(() => {
-                console.log('Instant sign in successful');
-              })
-              .catch((err) => {
-                console.error('Instant sign in error:', err);
-                alert('Login error: ' + (err.body?.message || err.message));
-              });
-          }}
-        />
-      
+        <div className="flex justify-center items-center">
+          <GoogleLogin
+            nonce={nonce}
+            onError={() => alert('Login failed')}
+            onSuccess={({ credential }) => {
+              console.log('Google login success, signing in with Instant...');
+              db.auth
+                .signInWithIdToken({
+                  clientName: GOOGLE_CLIENT_NAME!,
+                  idToken: credential,
+                  nonce,
+                })
+                .then(() => {
+                  console.log('Instant sign in successful');
+                })
+                .catch((err) => {
+                  console.error('Instant sign in error:', err);
+                  alert('Login error: ' + (err.body?.message || err.message));
+                });
+            }}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+// Navbar component ^
+function Navbar({ user }: { user: any }) {
+  const handleLogout = () => {
+    db.auth.signOut();
+  };
+
+  return (
+    <nav className="w-full">
+      <div className="flex justify-end items-center p-8">
+        <div className="flex items-center gap-4 text-sand-700">
+          <span className="text-lg">{user.email.split('@')[0]}</span>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 text-sand bg-sand-200 rounded hover:bg-sand-300 transition"
+          >
+            <ExitIcon className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    </nav>
   );
 }
 
@@ -264,26 +289,11 @@ function AuthenticatedApp({ user }: { user: any }) {
     // Drag and drop logic can be implemented later if needed ^
   };
 
-  const handleLogout = () => {
-    db.auth.signOut();
-  };
-
   return (
-    <div className="flex flex-col items-center min-h-screen bg-sand-100 py-20 px-4 pb-32">
-      <div className="w-full max-w-3xl">
-        {/* Header with user info and logout ^ */}
-        <div className="flex justify-end items-center mb-8">
-          <div className="flex items-center gap-4 text-sand-700">
-            <span className="text-lg">{user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sand bg-sand-200 rounded hover:bg-sand-300 transition"
-            >
-              <ExitIcon className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-sand-100">
+      <Navbar user={user} />
+      <div className="flex flex-col items-center py-20 px-4 pb-32">
+        <div className="w-full max-w-3xl">
 
         {/* Total Time Display ^ */}
         <div className="text-center">
@@ -379,6 +389,7 @@ function AuthenticatedApp({ user }: { user: any }) {
               )}
             </Droppable>
           </DragDropContext>
+        </div>
         </div>
       </div>
     </div>
