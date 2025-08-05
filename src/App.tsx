@@ -9,6 +9,7 @@ import {
   PlayIcon,
   PauseIcon,
   ExitIcon,
+  CheckIcon,
 } from "@radix-ui/react-icons";
 import {
   DragDropContext,
@@ -169,6 +170,8 @@ function AuthenticatedApp({ user }: { user: any }) {
   const [newMinutes, setNewMinutes] = useState("");
   const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   const [localTimes, setLocalTimes] = useState<Record<string, number>>({});
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   const intervalRef = useRef<number | null>(null);
   const dbUpdateRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -274,6 +277,39 @@ function AuthenticatedApp({ user }: { user: any }) {
     );
     setNewText("");
     setNewMinutes("");
+  };
+
+  const handleStartEditing = (todo: any) => {
+    setEditingTodoId(todo.id);
+    setEditText(todo.text);
+    
+    // Allow the component to render first, then adjust textarea height and focus with cursor at end
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        // Set height to fit content
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+        
+        // Position cursor at the end of text
+        const textLength = todo.text.length;
+        textarea.focus();
+        textarea.setSelectionRange(textLength, textLength);
+      }
+    }, 0);
+  };
+
+  const handleSaveEdit = (todoId: string) => {
+    if (!editText.trim()) return;
+    
+    db.transact(
+      db.tx.todos[todoId].update({
+        text: editText.trim()
+      })
+    );
+    
+    setEditingTodoId(null);
+    setEditText("");
   };
 
   const handleDelete = (todo: any) => {
@@ -396,9 +432,39 @@ function AuthenticatedApp({ user }: { user: any }) {
                           }`}
                         >
                           <div className="flex flex-col sm:flex-row w-full items-start sm:items-center justify-between gap-2">
-                            <div className="flex-1 truncate whitespace-nowrap text-ellipsis overflow-hidden mb-2 sm:mb-0">
-                              {todo.text}
-                            </div>
+                            {editingTodoId === todo.id ? (
+                              <textarea
+                                value={editText}
+                                onChange={(e) => {
+                                  setEditText(e.target.value);
+                                  // Auto-resize the textarea as user types
+                                  e.target.style.height = 'auto';
+                                  e.target.style.height = e.target.scrollHeight + 'px';
+                                }}
+                                className="flex-1 w-full bg-sand-200 outline-none border-none resize-none mb-2 sm:mb-0 text-2xl sm:text-3xl text-sand font-inherit"
+                                style={{ 
+                                  minHeight: '1.5em', 
+                                  height: 'auto',
+                                  fontFamily: 'inherit',
+                                  lineHeight: 'inherit',
+                                  padding: 0
+                                }}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit(todo.id);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingTodoId(null);
+                                    setEditText("");
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="flex-1 break-words mb-2 sm:mb-0 min-h-[1.5em]">
+                                {todo.text}
+                              </div>
+                            )}
                             <div className="flex items-center justify-end w-full sm:w-auto gap-3 sm:gap-4 mt-1 sm:mt-0">
                               <span className={`w-20 sm:w-24 text-right ${(localTimes[todo.id] ?? todo.time) === 0 ? 'text-red-500 font-bold' : ''}`}>
                                 {activeTimerId === todo.id 
@@ -420,6 +486,23 @@ function AuthenticatedApp({ user }: { user: any }) {
                                   {activeTimerId === todo.id ? 'Pause' : 'Play'}
                                 </VisuallyHidden>
                               </button>
+                              {editingTodoId === todo.id ? (
+                                <button 
+                                  onClick={() => handleSaveEdit(todo.id)} 
+                                  className="hover:text-green-500 ml-2"
+                                >
+                                  <CheckIcon className="w-7 h-7 sm:w-8 sm:h-8" />
+                                  <VisuallyHidden>Save</VisuallyHidden>
+                                </button>
+                              ) : (
+                                <button 
+                                  onClick={() => handleStartEditing(todo)} 
+                                  className="hover:text-blue-500 ml-2"
+                                >
+                                  <Pencil1Icon className="w-7 h-7 sm:w-8 sm:h-8" />
+                                  <VisuallyHidden>Edit</VisuallyHidden>
+                                </button>
+                              )}
                               <button onClick={() => handleDelete(todo)} className="hover:text-red-500 ml-2">
                                 <TrashIcon className="w-7 h-7 sm:w-8 sm:h-8" />
                                 <VisuallyHidden>Delete</VisuallyHidden>
