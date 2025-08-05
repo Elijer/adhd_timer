@@ -24,6 +24,15 @@ import schema from "../instant.schema";
 const APP_ID = import.meta.env.VITE_INSTANT_DB;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_NAME = import.meta.env.VITE_GOOGLE_CLIENT_NAME;
+
+// Debug environment variables ^
+console.log('Environment check:', {
+  hasAppId: !!APP_ID,
+  hasGoogleClientId: !!GOOGLE_CLIENT_ID,
+  hasGoogleClientName: !!GOOGLE_CLIENT_NAME,
+  googleClientName: GOOGLE_CLIENT_NAME
+});
+
 const db = init({ appId: APP_ID, schema });
 
 function formatMinutes(timeInSeconds: number, showSeconds: boolean = false) {
@@ -70,6 +79,27 @@ function formatTotalTime(totalSeconds: number) {
 function Login() {
   const [nonce] = useState(crypto.randomUUID());
 
+  // Check if environment variables are configured ^
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_NAME) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-sand-100 py-20 px-4">
+        <div className="text-center border-1 border-red-300 bg-red-50 p-16 max-w-lg">
+          <h1 className="text-3xl text-red-700 mb-4">Configuration Required</h1>
+          <p className="text-lg text-red-600 mb-4">
+            Missing environment variables. Please set up:
+          </p>
+          <ul className="text-left text-red-600 space-y-2">
+            {!GOOGLE_CLIENT_ID && <li>• VITE_GOOGLE_CLIENT_ID</li>}
+            {!GOOGLE_CLIENT_NAME && <li>• VITE_GOOGLE_CLIENT_NAME</li>}
+          </ul>
+          <p className="text-sm text-red-500 mt-4">
+            Check the Instant dashboard Auth tab for your client name.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-sand-100 py-20 px-4">
       <div className="text-center border-1 border-sand-700/20 p-16">
@@ -79,17 +109,35 @@ function Login() {
           nonce={nonce}
           onError={() => alert('Login failed')}
           onSuccess={({ credential }) => {
+            console.log('Google login success, signing in with Instant...');
             db.auth
               .signInWithIdToken({
                 clientName: GOOGLE_CLIENT_NAME,
                 idToken: credential,
                 nonce,
               })
+              .then(() => {
+                console.log('Instant sign in successful');
+              })
               .catch((err) => {
-                alert('Login error: ' + err.body?.message);
+                console.error('Instant sign in error:', err);
+                alert('Login error: ' + (err.body?.message || err.message));
               });
           }}
         />
+        
+        {/* Temporary logout button for debugging ^ */}
+        <div className="mt-8">
+          <button
+            onClick={() => {
+              console.log('Manually logging out...');
+              db.auth.signOut();
+            }}
+            className="px-4 py-2 bg-red-200 text-red-800 rounded hover:bg-red-300"
+          >
+            Debug Logout
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -352,6 +400,9 @@ function AuthenticatedApp({ user }: { user: any }) {
 // Main App component with auth routing ^
 function App() {
   const { isLoading, user, error } = db.useAuth();
+  
+  // Debug logging to help troubleshoot ^
+  console.log('Auth state:', { isLoading, user: user?.email || 'no user', error: error?.message });
 
   if (isLoading) {
     return (

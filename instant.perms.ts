@@ -16,7 +16,7 @@ const rules = {
     allow: {
       view: "auth.id != null && auth.id == data.id",
       create: "false", // Users are created automatically via auth ^
-      update: "auth.id != null && auth.id == data.id",
+      update: "false", // Users namespace is read-only ^
       delete: "false", // Prevent user deletion ^
     },
   },
