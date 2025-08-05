@@ -236,7 +236,14 @@ function AuthenticatedApp({ user }: { user: any }) {
   }, [activeTimerId, data?.todos, localTimes]);
 
   // All hooks called above this point - now safe for early returns ^
-  const todos = data?.todos || [];
+  const unsortedTodos = data?.todos || [];
+  
+  // Sort todos by order field if available
+  const todos = [...unsortedTodos].sort((a, b) => {
+    const orderA = a.order ?? 0;
+    const orderB = b.order ?? 0;
+    return orderA - orderB;
+  });
 
   // Calculate total time for all todos (time is now in seconds, convert for display) ^
   const totalSeconds = todos.reduce((sum: number, todo: any) => sum + todo.time, 0);
@@ -250,6 +257,11 @@ function AuthenticatedApp({ user }: { user: any }) {
     if (!newText.trim() || !newMinutes) return;
     // Convert minutes input to seconds for storage and include creatorId ^
     const timeInSeconds = Number(newMinutes) * 60;
+    // Get the highest order value or default to 0
+    const maxOrder = todos.length > 0 
+      ? Math.max(...todos.map((todo: any) => todo.order ?? 0)) 
+      : -1;
+      
     db.transact(
       db.tx.todos[id()].update({
         text: newText,
@@ -257,6 +269,7 @@ function AuthenticatedApp({ user }: { user: any }) {
         time: timeInSeconds,
         createdAt: new Date(),
         creatorId: user.id,
+        order: maxOrder + 1, // Add new item at the end
       })
     );
     setNewText("");
@@ -292,7 +305,30 @@ function AuthenticatedApp({ user }: { user: any }) {
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    // Drag and drop logic can be implemented later if needed ^
+    
+    const { source, destination } = result;
+    
+    // Don't do anything if dropped in the same position
+    if (source.index === destination.index) return;
+    
+    // Create a copy of the todos array
+    const todosCopy = [...todos];
+    
+    // Remove the item from the source position
+    const [removed] = todosCopy.splice(source.index, 1);
+    
+    // Insert it at the destination position
+    todosCopy.splice(destination.index, 0, removed);
+    
+    // Update the database with the new order
+    // We'll use individual transactions for each todo
+    todosCopy.forEach((todo, index) => {
+      db.transact(
+        db.tx.todos[todo.id].update({ 
+          order: index
+        })
+      );
+    });
   };
 
   return (

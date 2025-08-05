@@ -17,6 +17,7 @@ const _schema = i.schema({
       time: i.number(),
       createdAt: i.date(),
       creatorId: i.string().indexed(),
+      order: i.number().optional(),
     }),
   },
   links: {
