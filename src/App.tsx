@@ -145,7 +145,7 @@ function CompletionTime({ totalSeconds }: { totalSeconds: number }) {
   
   return (
     <>
-      {" "}/{" "}
+      {" "}...{" "}
       <span>
         {new Date(Date.now() + totalSeconds * 1000).toLocaleTimeString([], {
           hour: "numeric",
@@ -393,8 +393,8 @@ function AuthenticatedApp({ user }: { user: any }) {
 
         {/* Total Time Display ^ */}
         <div className="text-center">
-          <div className="text-6xl text-sand font-bold">
-            {formatTotalTime(totalSeconds)}
+          <div className="text-6xl text-sand font-bold mb-3">
+            <span className="border-b-1 border-sand-700/20">{formatTotalTime(totalSeconds)}</span>
           </div>
           <h1 className="text-lg text-sand-700/60">
             {data.todos.length} thangs
