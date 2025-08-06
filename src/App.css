@@ -12,13 +12,6 @@
   --color-hl: #6ABBD3;
 }
 
-/* @theme {
-  --color-subtle: #FFEBC5;
-  --color-forward: #FFE3AF;
-  --color-bold: #E69968;
-  --color-highlight: #6ABBD3;
-} */
-
 /* Hide number input steppers/arrows ^ */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -40,5 +33,3 @@ input[type="number"] {
 .header-font {
   font-family: 'SevenSegment', sans-serif;
 }
-
-/* Mobile styles now handled by Tailwind responsive classes */
